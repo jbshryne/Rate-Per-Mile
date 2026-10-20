@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Load Mileage Calculator</title>
+  <style>
+    :root {
+      --bg: #eceae4;
+      --card: #fbfaf7;
+      --ink: #1d2024;
+      --muted: #666b72;
+      --line: #cfccc3;
+      --accent: #1f5c8f;
+      --error: #a3321f;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #17191c;
+        --card: #20242a;
+        --ink: #eceae4;
+        --muted: #9aa0a8;
+        --line: #3a3f47;
+        --accent: #6fb0e6;
+        --error: #f08a78;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.5;
+      padding: 24px 16px;
+    }
+
+    main {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin: 0 0 4px;
+      letter-spacing: -0.01em;
+    }
+
+    .sub {
+      color: var(--muted);
+      margin: 0 0 20px;
+    }
+
+    form {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 20px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    input {
+      width: 100%;
+      font: inherit;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .row input {
+      flex: 1;
+    }
+
+    .row-pair {
+      display: flex;
+      gap: 12px;
+    }
+
+    .row-pair .field {
+      flex: 1;
+    }
+
+    input:focus-visible,
+    button:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 1px;
+    }
+
+    button {
+      font: inherit;
+      font-weight: 600;
+      padding: 12px;
+      border: 0;
+      border-radius: 4px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      button {
+        color: #10151a;
+      }
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    #go {
+      width: 100%;
+    }
+
+    button.secondary {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--line);
+      padding: 8px 12px;
+      margin-bottom: 16px;
+    }
+
+    button.remove {
+      flex: none;
+      width: 42px;
+      padding: 0;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+
+    .field {
+      position: relative;
+    }
+
+    .suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 5;
+      margin: 2px 0 0;
+      padding: 4px 0;
+      list-style: none;
+      max-height: 240px;
+      overflow-y: auto;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+    }
+
+    .suggestions li {
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .suggestions li.active,
+    .suggestions li:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    @media (prefers-color-scheme: dark) {
+
+      .suggestions li.active,
+      .suggestions li:hover {
+        color: #10151a;
+      }
+    }
+
+    #result {
+      margin-top: 20px;
+    }
+
+    .miles {
+      font-size: 1.6rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .miles small {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .rate {
+      font-size: 2.4rem;
+      font-weight: 700;
+      margin: 12px 0 0;
+    }
+
+    .rate small {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .detail {
+      color: var(--muted);
+      margin: 6px 0 0;
+    }
+
+    .error {
+      color: var(--error);
+      font-weight: 600;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 0.95rem;
+    }
+
+    td {
+      padding: 6px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    td:last-child {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 24px;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <h1>Load mileage calculator</h1>
+    <p class="sub">Enter a city or ZIP code for each stop, then the pay for the load.</p>
+
+    <form id="form">
+      <div id="stops"></div>
+      <button type="button" id="addStop" class="secondary">Add stop</button>
+
+      <div class="row-pair">
+        <div class="field">
+          <label for="pay">Total pay ($)</label>
+          <input id="pay" type="number" min="0" step="0.01" placeholder="2500" inputmode="decimal">
+        </div>
+      </div>
+
+      <button id="go" type="submit">Calculate</button>
+    </form>
+
+    <div id="result" aria-live="polite"></div>
+
+    <p class="note">Distances are for a standard car route and don't account for truck restrictions. Uses free OpenStreetMap and Open-Meteo services, which are fine for testing but not for heavy use.</p>
+  </main>
+
+  <script>
+    const METERS_PER_MILE = 1609.344;
+    const stopsEl = document.getElementById("stops");
+    const result = document.getElementById("result");
+    const button = document.getElementById("go");
+
+    /* ---------- The list of stops ---------- */
+
+    // Start with a pickup and a delivery. Stops added later go in between.
+    function addStopInput(placeholder) {
+      const wrap = document.createElement("div");
+      wrap.className = "field";
+      wrap.innerHTML = `
+      <label></label>
+      <div class="row">
+        <input placeholder="${placeholder}" required autocomplete="off"
+               role="combobox" aria-autocomplete="list" aria-expanded="false">
+      </div>
+      <ul class="suggestions" role="listbox" hidden></ul>`;
+      attachAutocomplete(wrap);
+      return wrap;
+    }
+
+    function relabel() {
+      const fields = [...stopsEl.children];
+      fields.forEach((field, i) => {
+        const isFirst = i === 0;
+        const isLast = i === fields.length - 1;
+        const name = isFirst ? "Pickup" : isLast ? "Delivery" : `Stop ${i + 1}`;
+        const label = field.querySelector("label");
+        const input = field.querySelector("input");
+        label.textContent = name;
+        label.htmlFor = input.id = "stop-" + i;
+        const list = field.querySelector(".suggestions");
+        list.id = "suggestions-" + i;
+        input.setAttribute("aria-controls", list.id);
+
+        // Only middle stops get a remove button
+        const row = field.querySelector(".row");
+        const existing = row.querySelector(".remove");
+        if (!isFirst && !isLast && !existing) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "remove";
+          btn.setAttribute("aria-label", "Remove " + name);
+          btn.textContent = "×";
+          btn.addEventListener("click", () => {
+            field.remove();
+            relabel();
+          });
+          row.appendChild(btn);
+        } else if ((isFirst || isLast) && existing) {
+          existing.remove();
+        }
+      });
+    }
+
+    stopsEl.appendChild(addStopInput("Chicago, IL or 60601"));
+    stopsEl.appendChild(addStopInput("Dallas, TX or 75201"));
+    relabel();
+
+    document.getElementById("addStop").addEventListener("click", () => {
+      const delivery = stopsEl.lastElementChild;
+      stopsEl.insertBefore(addStopInput("City, ST or ZIP"), delivery);
+      relabel();
+      delivery.previousElementSibling.querySelector("input").focus();
+    });
+
+    /* ---------- City suggestions as you type ---------- */
+
+    const STATES = {
+      "Alabama": "AL",
+      "Alaska": "AK",
+      "Arizona": "AZ",
+      "Arkansas": "AR",
+      "California": "CA",
+      "Colorado": "CO",
+      "Connecticut": "CT",
+      "Delaware": "DE",
+      "District of Columbia": "DC",
+      "Florida": "FL",
+      "Georgia": "GA",
+      "Hawaii": "HI",
+      "Idaho": "ID",
+      "Illinois": "IL",
+      "Indiana": "IN",
+      "Iowa": "IA",
+      "Kansas": "KS",
+      "Kentucky": "KY",
+      "Louisiana": "LA",
+      "Maine": "ME",
+      "Maryland": "MD",
+      "Massachusetts": "MA",
+      "Michigan": "MI",
+      "Minnesota": "MN",
+      "Mississippi": "MS",
+      "Missouri": "MO",
+      "Montana": "MT",
+      "Nebraska": "NE",
+      "Nevada": "NV",
+      "New Hampshire": "NH",
+      "New Jersey": "NJ",
+      "New Mexico": "NM",
+      "New York": "NY",
+      "North Carolina": "NC",
+      "North Dakota": "ND",
+      "Ohio": "OH",
+      "Oklahoma": "OK",
+      "Oregon": "OR",
+      "Pennsylvania": "PA",
+      "Rhode Island": "RI",
+      "South Carolina": "SC",
+      "South Dakota": "SD",
+      "Tennessee": "TN",
+      "Texas": "TX",
+      "Utah": "UT",
+      "Vermont": "VT",
+      "Virginia": "VA",
+      "Washington": "WA",
+      "West Virginia": "WV",
+      "Wisconsin": "WI",
+      "Wyoming": "WY"
+    };
+
+    // Ask Open-Meteo's free place search for US cities matching what was typed so far.
+    // If the text looks like "Spring, M", the part after the comma narrows by state.
+    async function suggestCities(text) {
+      const [cityPart, statePart = ""] = text.split(",").map((t) => t.trim());
+      const url = "https://geocoding-api.open-meteo.com/v1/search?count=10&language=en&format=json&countryCode=US&name=" +
+        encodeURIComponent(cityPart);
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      const data = await res.json();
+
+      const wanted = statePart.toLowerCase();
+      const seen = new Set();
+      const items = [];
+      for (const r of data.results || []) {
+        const abbr = STATES[r.admin1];
+        if (!abbr) continue; // skip anything that isn't a US state
+        if (wanted && !abbr.toLowerCase().startsWith(wanted) && !r.admin1.toLowerCase().startsWith(wanted)) continue;
+        const label = `${r.name}, ${abbr}`;
+        if (seen.has(label)) continue;
+        seen.add(label);
+        items.push({
+          label,
+          lat: r.latitude,
+          lon: r.longitude
+        });
+      }
+      return items.slice(0, 6);
+    }
+
+    function attachAutocomplete(field) {
+      const input = field.querySelector("input");
+      const list = field.querySelector(".suggestions");
+      let items = [];
+      let active = -1;
+      let timer = null;
+      let latestRequest = 0;
+
+      function close() {
+        list.hidden = true;
+        list.innerHTML = "";
+        items = [];
+        active = -1;
+        input.setAttribute("aria-expanded", "false");
+      }
+
+      function setActive(i) {
+        active = i;
+        [...list.children].forEach((li, n) => {
+          li.classList.toggle("active", n === i);
+          li.setAttribute("aria-selected", n === i);
+        });
+        if (i >= 0) list.children[i].scrollIntoView({
+          block: "nearest"
+        });
+      }
+
+      // Choosing a suggestion saves its coordinates, so no extra lookup is needed later
+      function pick(item) {
+        input.value = item.label;
+        input.dataset.lat = item.lat;
+        input.dataset.lon = item.lon;
+        input.dataset.name = item.label;
+        close();
+      }
+
+      function render() {
+        list.innerHTML = "";
+        items.forEach((item) => {
+          const li = document.createElement("li");
+          li.setAttribute("role", "option");
+          li.textContent = item.label;
+          li.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            pick(item);
+          });
+          list.appendChild(li);
+        });
+        list.hidden = items.length === 0;
+        input.setAttribute("aria-expanded", String(items.length > 0));
+        active = -1;
+      }
+
+      input.addEventListener("input", () => {
+        // Typing again means any earlier pick no longer applies
+        delete input.dataset.lat;
+        delete input.dataset.lon;
+        delete input.dataset.name;
+        clearTimeout(timer);
+
+        const text = input.value.trim();
+        if (text.length < 3 || /^\d/.test(text)) {
+          close();
+          return;
+        } // ZIPs skip suggestions
+
+        timer = setTimeout(async () => {
+          const request = ++latestRequest;
+          try {
+            const found = await suggestCities(text);
+            if (request !== latestRequest) return; // a newer search replaced this one
+            items = found;
+            render();
+          } catch (err) {
+            close();
+          }
+        }, 250);
+      });
+
+      input.addEventListener("keydown", (e) => {
+        if (list.hidden) return;
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setActive((active + 1) % items.length);
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setActive((active - 1 + items.length) % items.length);
+        } else if (e.key === "Enter" && active >= 0) {
+          e.preventDefault();
+          pick(items[active]);
+        } else if (e.key === "Escape") {
+          close();
+        }
+      });
+
+      input.addEventListener("blur", close);
+    }
+
+    /* ---------- Looking up places and routes ---------- */
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    // Turn "60601" or "Chicago, IL" into { lat, lon, name }
+    async function geocode(text) {
+      const q = text.trim();
+      const params = new URLSearchParams({
+        format: "json",
+        limit: "1",
+        countrycodes: "us"
+      });
+
+      if (/^\d{5}$/.test(q)) {
+        params.set("postalcode", q); // exact ZIP lookup
+      } else {
+        params.set("q", q); // city / free-text lookup
+      }
+
+      const res = await fetch("https://nominatim.openstreetmap.org/search?" + params);
+      if (!res.ok) throw new Error("Location lookup failed. Try again in a moment.");
+      const data = await res.json();
+      if (data.length === 0) throw new Error(`Couldn't find "${q}". Check the spelling or try "City, ST".`);
+
+      return {
+        lat: data[0].lat,
+        lon: data[0].lon,
+        name: data[0].display_name
+      };
+    }
+
+    // One request for the whole trip. OSRM returns one "leg" per hop (A to B, B to C, ...)
+    async function drivingRoute(points) {
+      // OSRM wants longitude first, then latitude, separated by semicolons
+      const coords = points.map((p) => `${p.lon},${p.lat}`).join(";");
+      const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=false`);
+      if (!res.ok) throw new Error("Routing service failed. Try again in a moment.");
+      const data = await res.json();
+      if (data.code !== "Ok") throw new Error("No driving route found between those stops.");
+
+      const route = data.routes[0];
+      return {
+        legMiles: route.legs.map((leg) => leg.distance / METERS_PER_MILE),
+        miles: route.distance / METERS_PER_MILE,
+        hours: route.duration / 3600,
+      };
+    }
+
+    /* ---------- Showing the answer ---------- */
+
+    const escapeHtml = (s) => s.replace(/[&<>"]/g, (c) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;"
+    } [c]));
+
+    const shortName = (p) => {
+      const nameArray = p.name.split(",");
+      if (/^\d{5}$/.test(nameArray[0])) {
+        return nameArray[0] + " (" + nameArray[1].trim() + ")";
+      } else {
+        return escapeHtml(nameArray.slice(0, 2).join(","))
+      }
+    }
+
+    const money = (n) => "$" + n.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    document.getElementById("form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      button.disabled = true;
+      result.innerHTML = "<p class='detail'>Calculating…</p>";
+
+      try {
+        const inputs = [...stopsEl.querySelectorAll("input")];
+        const places = [];
+        let lastWasLookup = false;
+        for (const input of inputs) {
+          // A stop chosen from the suggestions already has coordinates
+          if (input.dataset.lat) {
+            places.push({
+              lat: input.dataset.lat,
+              lon: input.dataset.lon,
+              name: input.dataset.name
+            });
+            continue;
+          }
+          if (lastWasLookup) await sleep(1100); // Nominatim asks for at most 1 request per second
+          places.push(await geocode(input.value));
+          lastWasLookup = true;
+        }
+
+        const trip = await drivingRoute(places);
+        const pay = parseFloat(document.getElementById("pay").value);
+
+        let rateHtml = "";
+        if (pay > 0) {
+          rateHtml = `<p class="rate">${money(pay / trip.miles)} <small>per mile</small></p>`;
+        }
+
+        const rows = trip.legMiles.map((m, i) =>
+          `<tr><td>${shortName(places[i])} to ${shortName(places[i + 1])}</td>
+            <td>${Math.round(m).toLocaleString()} mi</td></tr>`
+        ).join("");
+
+        console.log(places)
+
+        result.innerHTML = `
+        <div class="miles">${Math.round(trip.miles).toLocaleString()} <small>miles</small></div>
+        <p class="detail">About ${trip.hours.toFixed(1)} hours of driving</p>
+        ${rateHtml}
+        ${places.length > 2 ? `<table>${rows}</table>` : ""}`;
+      } catch (err) {
+        result.innerHTML = `<p class="error">${escapeHtml(err.message)}</p>`;
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+
+</html>
